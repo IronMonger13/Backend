@@ -7,7 +7,7 @@ from auth import (
     get_current_user,
     pwd_context,
 )
-from auth import router as auth_router
+from auth import router as auth_router, reusable_oauth
 
 
 # ------------------------------------------------------------- LIBRARY IMPORTS -------------------------------------------------------------
@@ -89,16 +89,17 @@ async def get_me(user: Users = Depends(get_current_user)):
 # Logout endpoint (takes away access and refresh tokens)
 @app.post("/logout")
 def user_logout(
-    user=Depends(get_current_user),  # getting current logged in user's details
+    token: str = Depends(reusable_oauth),  # get current user's token
     db=Depends(get_db),
 ):
     # Fetch user's token
-    token = db.query(Tokens).filter(Tokens.username == user.username).first()
+    token_to_delete = db.query(Tokens).filter(Tokens.access_token == token).first()
 
     # Check if user has tokens already or not
-    if not token:
+    if not token_to_delete:
         raise HTTPException(status_code=404, detail="No valid token found")
 
     # Delete the token
-    db.delete(token)
+    db.delete(token_to_delete)
     db.commit()
+    return {"message": "Successfully logged out"}
