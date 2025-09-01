@@ -1,4 +1,0 @@
-create new table called tokens
-define relation between users table and tokens based on username
-when generating tokens, store them in db based on username
-when logout, drop access and refresh token from db
