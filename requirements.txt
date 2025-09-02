@@ -1,0 +1,15 @@
+Authlib
+bcrypt
+dotenv
+fastapi
+httpx
+cryptography
+passlib
+psycopg2
+pydantic
+python-dotnet
+python-jose
+python-multipart
+sqlalchemy
+uvicorn
+itsdangerous
