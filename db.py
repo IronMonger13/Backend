@@ -7,7 +7,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 # -------------------------------------------------------- GETTING CONNECTION STRING --------------------------------------------------------
 load_dotenv()
-connection_string = os.getenv("postgres_uri")
+connection_string = os.getenv("POSTGRES_URI")
 engine = create_engine(connection_string, echo=True)
 
 
@@ -22,11 +22,9 @@ class Users(Base):
     user_id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
     age = Column(Integer, nullable=False)
+    email = Column(String, nullable=False)
     username = Column(String, nullable=False, unique=True)
     hashed_password = Column(String, nullable=False)
-
-    # relationship of users and tokens
-    # users = relationship("Tokens", back_populates="tokens")
 
 
 # Tokens table
