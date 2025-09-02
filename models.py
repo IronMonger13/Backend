@@ -7,6 +7,7 @@ class User_base_model(BaseModel):
     name: str
     age: int
     username: str
+    email: str
 
 
 # Creating user
