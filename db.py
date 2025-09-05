@@ -5,13 +5,13 @@ from sqlalchemy import Column, Integer, String, create_engine, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 
 
-# -------------------------------------------------------- GETTING CONNECTION STRING --------------------------------------------------------
+# ------------------------------------------------------------ SETTING UP ENGINE ------------------------------------------------------------
 load_dotenv()
 connection_string = os.getenv("POSTGRES_URI")
 engine = create_engine(connection_string, echo=True)
 
 
-# ---------------------------------------------------------- BASE CLASS FOR MODELS ----------------------------------------------------------
+# ---------------------------------------------------------- BASE MODEL FOR TABLES ----------------------------------------------------------
 Base = declarative_base()
 
 
