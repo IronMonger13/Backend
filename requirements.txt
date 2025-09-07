@@ -5,9 +5,9 @@ fastapi
 httpx
 cryptography
 passlib
-psycopg2
+psycopg2-binary
 pydantic
-python-dotnet
+python-dotenv
 python-jose
 python-multipart
 sqlalchemy
