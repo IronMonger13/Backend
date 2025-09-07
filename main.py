@@ -97,7 +97,7 @@ def user_logout(
     current_user=Depends(get_current_user),  # get currently logged in user
     db=Depends(get_db),
 ):
-    # Fetch user's from tokens db
+    # Fetch user's tokens fromn db
     user = db.query(Tokens).filter(Tokens.username == current_user.username).first()
 
     # delete tokens for user logging in via UI
