@@ -31,7 +31,3 @@ class Token_schema(BaseModel):
 class Token_data(BaseModel):
     username: str
 
-
-# Schema to validate refresh token (to give new access token)
-class Refresh_token_request(BaseModel):
-    refresh_token: str
