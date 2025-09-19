@@ -11,9 +11,8 @@ from auth import router as auth_router
 from oauth_providers import oauth, google_authorize_redirect
 
 # ------------------------------------------------------------- LIBRARY IMPORTS -------------------------------------------------------------
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import FastAPI, Depends, HTTPException, Request, Response
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 from dotenv import load_dotenv
 import os
@@ -50,9 +49,10 @@ def create_user(user_details: Create_user, db=Depends(get_db)):
     return new_user
 
 
-# Login endpoint (returns access token)
-@app.post("/login/", response_model=Token_schema)
+# Login endpoint
+@app.post("/login/")
 def user_login(
+    response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     db=Depends(get_db),
 ):
@@ -77,12 +77,30 @@ def user_login(
     )
     db.add(token_entry)
     db.commit()
+    db.refresh(token_entry)
 
-    # Returning access and refresh token
-    return {
-        "access_token": new_access_token,
-        "refresh_token": new_refresh_token,
-    }
+    # Creating cookie and storing access token in it
+    response.set_cookie(
+        key="access_token",
+        value=new_access_token,
+        httponly=True,
+        samesite="strict",
+        max_age=900,  # 15 minutes
+        path="/",
+    )
+
+    # Creating cookie and storing refresh token in it
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        samesite="strict",
+        max_age=604800,  # 7 days
+        path="/",
+    )
+
+    # Return success message
+    return {"message": "Login successful"}
 
 
 # Get current user endpoint
@@ -94,16 +112,21 @@ async def get_me(user: Users = Depends(get_current_user)):
 # Logout endpoint (takes away access and refresh tokens)
 @app.post("/logout")
 def user_logout(
+    response: Response,
     current_user=Depends(get_current_user),  # get currently logged in user
     db=Depends(get_db),
 ):
-    # Fetch user's tokens fromn db
-    user = db.query(Tokens).filter(Tokens.username == current_user.username).first()
+    # Fetch user's tokens from db
+    user_tokens = db.query(Tokens).filter(Tokens.username == current_user.username).first()
 
     # delete tokens for user logging in via UI
-    if user:
-        db.delete(user)
+    if user_tokens:
+        db.delete(user_tokens)
         db.commit()
+
+    # Deleting cookies for the user
+    response.delete_cookie("access_token")
+    response.delete_cookie("refresh_token")
 
     return {"message": "Successfully logged out"}
 
@@ -121,7 +144,9 @@ async def login_google(request: Request):
 
 # Callback route google redirects to
 @app.get("/auth/callback")
-async def auth_google_callback(request: Request, db=Depends(get_db)):
+async def auth_google_callback(
+    request: Request, response: Response, db=Depends(get_db)
+):
     # exchange received code for token and and get user info
     token = await oauth.google.authorize_access_token(request)  # fetch token
 
@@ -161,7 +186,25 @@ async def auth_google_callback(request: Request, db=Depends(get_db)):
     db.commit()
     db.refresh(token_entry)
 
-    # return json for these new tokens
-    return JSONResponse(
-        {"access_token": new_access_token, "refresh_token": new_refresh_token}
+    # Storing access token in cookie
+    response.set_cookie(
+        key="access_token",
+        value=new_access_token,
+        httponly=True,
+        samesite="strict",
+        path="/",
+        max_age=9000,  # 15 minutes
     )
+
+    # Storing refresh token in cookie
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        samesite="strict",
+        path="/",
+        max_age=604800,  # 7 days
+    )
+
+    # return json for these new tokens
+    return {"message": "Successfully logged in"}

@@ -1,17 +1,17 @@
 # ------------------------------------------------------------- LIBRARY IMPORTS -------------------------------------------------------------
 from dotenv import load_dotenv
 import os
-from typing import Union, Any
+from typing import Union, Any, Annotated
 from datetime import datetime, timedelta
 from jose import jwt, JWTError
-from fastapi import Depends, HTTPException, APIRouter
+from fastapi import Depends, HTTPException, APIRouter, Cookie, Response
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 
 
 # -------------------------------------------------------------- FILE IMPORTS --------------------------------------------------------------
 from db import Users, Tokens, get_db
-from models import Token_data, Refresh_token_request
+from models import Token_data
 
 
 # ----------------------------------------------------------- DEFINING CONSTANTS -----------------------------------------------------------
@@ -71,9 +71,16 @@ def create_refresh_token(subject: Union[str, Any], expires_delta: int = None):
 
 
 # Getting details of current user
-async def get_current_user(token: str = Depends(reusable_oauth), db=Depends(get_db)):
+async def get_current_user(
+    access_token: Annotated[str | None, Cookie()] = None, db=Depends(get_db)
+):
+    # Verifying cookie received
+    if not access_token:
+        raise HTTPException(status_code=401, detail="No cookie received")
+
+    # Decoding token
     try:
-        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(access_token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
             raise HTTPException(status_code=401, detail="Token missing user_id")
@@ -89,12 +96,18 @@ async def get_current_user(token: str = Depends(reusable_oauth), db=Depends(get_
 # Refresh token to get new access token
 @router.post("/refresh")
 def refresh_token(
-    request: Refresh_token_request, db=Depends(get_db)
-):  # take refresh token as parameter
+    response: Response,
+    refresh_token: Annotated[str | None, Cookie()] = None,
+    db=Depends(get_db),
+):
+    # Verifying cookie contains refresh token
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    # Decoding token
     try:
-        # Decode incoming refresh token
         payload = jwt.decode(
-            request.refresh_token, JWT_REFRESH_SECRET_KEY, algorithms=[ALGORITHM]
+            refresh_token, JWT_REFRESH_SECRET_KEY, algorithms=[ALGORITHM]
         )
 
         # Check if username exists in payload or not
@@ -110,6 +123,16 @@ def refresh_token(
         token_data.access_token = new_access_token
         db.commit()
 
-        return {"access_token": new_access_token}
+        # Storing new access token in cookie
+        response.set_cookie(
+            key="access_token",
+            value=new_access_token,
+            httponly=True,
+            samesite="strict",
+            max_age=900,  # 15 minutes
+            path="/",
+        )
+
+        return {"message": "Access token refreshed"}
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid refresh token")
