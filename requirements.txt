@@ -2,6 +2,7 @@ Authlib
 bcrypt
 dotenv
 fastapi
+logger
 httpx
 cryptography
 passlib
