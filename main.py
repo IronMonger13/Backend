@@ -1,5 +1,5 @@
 # -------------------------------------------------------------- FILE IMPORTS --------------------------------------------------------------
-from models import Create_user, Get_user, Token_schema
+from models import Create_user, Get_user
 from db import Users, Tokens, get_db
 from auth import (
     create_access_token,
@@ -8,6 +8,7 @@ from auth import (
     pwd_context,
 )
 from auth import router as auth_router
+from middlewares import Add_process_time_header
 from oauth_providers import oauth, google_authorize_redirect
 
 # ------------------------------------------------------------- LIBRARY IMPORTS -------------------------------------------------------------
@@ -23,6 +24,7 @@ load_dotenv()
 # -------------------------------------------------------- INITIALIZING FASTAPI APP --------------------------------------------------------
 app = FastAPI()
 app.include_router(auth_router)
+app.add_middleware(Add_process_time_header)
 
 
 # ---------------------------------------------------------------- ENDPOINTS ----------------------------------------------------------------
@@ -117,7 +119,9 @@ def user_logout(
     db=Depends(get_db),
 ):
     # Fetch user's tokens from db
-    user_tokens = db.query(Tokens).filter(Tokens.username == current_user.username).first()
+    user_tokens = (
+        db.query(Tokens).filter(Tokens.username == current_user.username).first()
+    )
 
     # delete tokens for user logging in via UI
     if user_tokens:
