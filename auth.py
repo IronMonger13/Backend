@@ -18,7 +18,7 @@ from models import Token_data
 load_dotenv()
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 day
-ALGORITHM = "HS256"
+ALGORITHM = os.getenv("ALGORITHM")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 JWT_REFRESH_SECRET_KEY = os.getenv("JWT_REFRESH_SECRET_KEY")
 
@@ -68,29 +68,6 @@ def create_refresh_token(subject: Union[str, Any], expires_delta: int = None):
     # Encoding to create refresh token
     encoded_jwt_refresh = jwt.encode(to_encode, JWT_REFRESH_SECRET_KEY, ALGORITHM)
     return encoded_jwt_refresh
-
-
-# Getting details of current user
-async def get_current_user(
-    access_token: Annotated[str | None, Cookie()] = None, db=Depends(get_db)
-):
-    # Verifying cookie received
-    if not access_token:
-        raise HTTPException(status_code=401, detail="No cookie received")
-
-    # Decoding token
-    try:
-        payload = jwt.decode(access_token, JWT_SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise HTTPException(status_code=401, detail="Token missing user_id")
-        token_data = Token_data(username=username)
-    except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    user = db.query(Users).filter(Users.username == token_data.username).first()
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
 
 
 # Refresh token to get new access token

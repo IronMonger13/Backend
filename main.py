@@ -4,11 +4,10 @@ from db import Users, Tokens, get_db
 from auth import (
     create_access_token,
     create_refresh_token,
-    get_current_user,
     pwd_context,
 )
 from auth import router as auth_router
-from middlewares import Add_process_time_header
+from middlewares import Add_process_time_header, Verify_user
 from oauth_providers import oauth, google_authorize_redirect
 
 # ------------------------------------------------------------- LIBRARY IMPORTS -------------------------------------------------------------
@@ -25,6 +24,7 @@ load_dotenv()
 app = FastAPI()
 app.include_router(auth_router)
 app.add_middleware(Add_process_time_header)
+app.add_middleware(Verify_user)
 
 
 # ---------------------------------------------------------------- ENDPOINTS ----------------------------------------------------------------
@@ -107,30 +107,30 @@ def user_login(
 
 # Get current user endpoint
 @app.get("/me", response_model=Get_user)
-async def get_me(user: Users = Depends(get_current_user)):
-    return user
+async def get_me(request: Request):
+    try:
+        return request.state.user
+    except Exception as e:
+        return {"error": True, "type": type(e).__name__, "message": str(e)}
 
 
 # Logout endpoint (takes away access and refresh tokens)
 @app.post("/logout")
-def user_logout(
-    response: Response,
-    current_user=Depends(get_current_user),  # get currently logged in user
-    db=Depends(get_db),
-):
+def user_logout(request: Request, response: Response, db=Depends(get_db)):
+    # Access user from middleware
+    current_user = request.state.user
+
     # Fetch user's tokens from db
     user_tokens = (
         db.query(Tokens).filter(Tokens.username == current_user.username).first()
     )
 
-    # delete tokens for user logging in via UI
+    # delete tokens and cookies
     if user_tokens:
         db.delete(user_tokens)
         db.commit()
-
-    # Deleting cookies for the user
-    response.delete_cookie("access_token")
-    response.delete_cookie("refresh_token")
+        response.delete_cookie("access_token")
+        response.delete_cookie("refresh_token")
 
     return {"message": "Successfully logged out"}
 
