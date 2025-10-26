@@ -11,11 +11,12 @@ from middlewares import Add_process_time_header, Verify_user
 from oauth_providers import oauth, google_authorize_redirect
 
 # ------------------------------------------------------------- LIBRARY IMPORTS -------------------------------------------------------------
-from fastapi import FastAPI, Depends, HTTPException, Request, Response
+from fastapi import FastAPI, Depends, HTTPException, Request, Response, File, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette.middleware.sessions import SessionMiddleware
 from dotenv import load_dotenv
 import os
+from typing import List
 
 
 load_dotenv()
@@ -212,3 +213,10 @@ async def auth_google_callback(
 
     # return json for these new tokens
     return {"message": "Successfully logged in"}
+
+
+# Endpoint for users to upload files
+@app.post("/upload_files")
+async def upload_files(files: List[UploadFile] = File(...)):
+    filenames = [f.filename for f in files]
+    return {"filenames": filenames}
