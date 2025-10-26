@@ -220,3 +220,16 @@ async def auth_google_callback(
 async def upload_files(files: List[UploadFile] = File(...)):
     filenames = [f.filename for f in files]
     return {"filenames": filenames}
+
+
+# Endpoint tto save uploaded files to server
+@app.post("/save_files")
+async def save_files(files: List[UploadFile] = File(...)):
+    for file in files:
+        with open(f"uploads/{file.filename}", "wb") as f:
+            f.write(await file.read())
+    count = len(files)
+    if count == 1:
+        return {"message": "Saved 1 file successfully"}
+    else:
+        return {"message": f"Saved {count} files successfully"}
