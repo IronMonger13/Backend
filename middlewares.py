@@ -70,5 +70,9 @@ class Verify_user(BaseHTTPMiddleware):
             # Pass to the next function or route
             response = await call_next(request)
             return response
-        except Exception as e:
+        # Known HTTP Exceptions
+        except HTTPException as e:
             return JSONResponse(status_code=e.status_code, content={"detail": e.detail})
+        # Unknown Exceptions
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"detail": str(e)})
