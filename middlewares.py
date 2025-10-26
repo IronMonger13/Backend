@@ -34,7 +34,14 @@ class Verify_user(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         try:
             # Routes that should not require login
-            public_paths = ["/login", "/signup", "/auth", "/docs", "/openapi.json"]
+            public_paths = [
+                "/login",
+                "/signup",
+                "/auth",
+                "/docs",
+                "/openapi.json",
+                "/upload_files",
+            ]
 
             # If request starts with these paths, skip them
             if any(request.url.path.startswith(path) for path in public_paths):
