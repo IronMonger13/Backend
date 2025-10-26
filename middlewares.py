@@ -41,6 +41,7 @@ class Verify_user(BaseHTTPMiddleware):
                 "/docs",
                 "/openapi.json",
                 "/upload_files",
+                "/save_files",
             ]
 
             # If request starts with these paths, skip them
